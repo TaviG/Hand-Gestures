@@ -114,7 +114,7 @@ for i in range(4):
         ax[i][j].imshow(train_orig_crop[i*7+j])
 
 
-
+# test
 
 # im = cv2.imread(r"C:\Users\Tavi\Desktop\CV1 LAB\Images\0\3.jpg")
 # #cv2.imshow("sh", im)
