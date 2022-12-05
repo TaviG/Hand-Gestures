@@ -114,7 +114,72 @@ for i in range(4):
         ax[i][j].imshow(train_orig_crop[i*7+j])
 
 
-# test
+#creating hog features 
+
+winSize = (64,64)
+blockSize = (16,16)
+blockStride = (16,16)
+cellSize = (8,8)
+nbins = 9
+derivAperture = 1
+winSigma = 4.
+histogramNormType = 0
+L2HysThreshold = 2.0000000000000001e-01
+gammaCorrection = 0
+nlevels = 64
+hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
+                        histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+#compute(img[, winStride[, padding[, locations]]]) -> descriptors
+winStride = (8,8)
+padding = (8,8)
+locations = ((10,20),)
+hist = hog.compute(train_orig_crop[0],winStride,padding,locations)
+
+print(hist.shape)
+
+# Resize all the images to 68 x 128
+
+def resize_im(im, w = 68, h = 128):
+    return cv2.resize(im, (w, h))
+
+test_orig_crop_rz = list(map(resize_im, test_orig_crop))
+train_orig_crop_rz = list(map(resize_im, train_orig_crop))
+
+
+fig, ax = plt.subplots(4, 7, figsize=(12, 6))
+for i in range(4):
+    for j in range(7):
+        ax[i][j].imshow(train_orig_crop_rz[i*7+j])
+
+plt.show()
+
+def compute_hog(im):
+    return hog.compute(im, winStride, padding, locations)
+    
+features_train = list(map(compute_hog, train_orig_crop_rz))
+features_test = list(map(compute_hog, test_orig_crop_rz))
+
+print(np.shape(features_train))
+print(np.shape(features_test))
+
+features_train = np.float32(features_train)
+features_test = np.float32(features_test)
+train_labels = np.float32(train_labels)
+knn = cv2.ml.KNearest_create()
+knn.train(features_train, cv2.ml.ROW_SAMPLE, train_labels)
+
+print(knn.predict(np.expand_dims(features_test[0], axis = 0)))
+print(test_labels[0])
+
+#HOG si dim imaginii pt optimizare
+
+svm = cv2.ml.SVM_create()
+train_labels = np.int32(train_labels)
+svm.setKernel(cv2.ml.SVM_POLY)
+svm.setDegree(2)
+svm.train(features_train, cv2.ml.ROW_SAMPLE, train_labels)
+print(svm.predict(np.expand_dims(features_test[0], axis = 0)))
+print(test_labels[0])
 
 # im = cv2.imread(r"C:\Users\Tavi\Desktop\CV1 LAB\Images\0\3.jpg")
 # #cv2.imshow("sh", im)
