@@ -120,19 +120,19 @@ winSize = (64,64)
 blockSize = (16,16)
 blockStride = (16,16)
 cellSize = (8,8)
-nbins = 9
-derivAperture = 1
+nbins = 18
+derivAperture = 2
 winSigma = 4.
 histogramNormType = 0
 L2HysThreshold = 2.0000000000000001e-01
 gammaCorrection = 0
-nlevels = 64
+nlevels = 36
 hog = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,
                         histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
 #compute(img[, winStride[, padding[, locations]]]) -> descriptors
-winStride = (8,8)
-padding = (8,8)
-locations = ((10,20),)
+winStride = (36,36)
+padding = (36,36)
+locations = ((6,25),)
 hist = hog.compute(train_orig_crop[0],winStride,padding,locations)
 
 print(hist.shape)
@@ -144,8 +144,10 @@ def resize_im(im, w = 68, h = 128):
 
 test_orig_crop_rz = list(map(resize_im, test_orig_crop))
 train_orig_crop_rz = list(map(resize_im, train_orig_crop))
-
-
+train_contours = [np.uint8(x) for x in train_contours]
+test_contours = [np.uint8(x) for x in test_contours]
+train_contours_crop = list(map(resize_im, train_contours))
+test_contours_crop = list(map(resize_im, test_contours))
 fig, ax = plt.subplots(4, 7, figsize=(12, 6))
 for i in range(4):
     for j in range(7):
@@ -156,8 +158,11 @@ plt.show()
 def compute_hog(im):
     return hog.compute(im, winStride, padding, locations)
     
-features_train = list(map(compute_hog, train_orig_crop_rz))
-features_test = list(map(compute_hog, test_orig_crop_rz))
+features_train = list(map(compute_hog, train_contours_crop))
+features_test = list(map(compute_hog, test_contours_crop))
+
+# features_train = list(map(compute_hog, train_orig_crop_rz))
+# features_test = list(map(compute_hog, test_orig_crop_rz))
 
 print(np.shape(features_train))
 print(np.shape(features_test))
@@ -167,9 +172,12 @@ features_test = np.float32(features_test)
 train_labels = np.float32(train_labels)
 knn = cv2.ml.KNearest_create()
 knn.train(features_train, cv2.ml.ROW_SAMPLE, train_labels)
+ret,result,neighbours,dist = knn.findNearest(features_test,k=3)
+result = np.int32(result).flatten()
+correct = np.count_nonzero(result == test_labels)
+accuracy = correct*100.0/result.size
+print("KNN Accuracy is", accuracy )
 
-print(knn.predict(np.expand_dims(features_test[0], axis = 0)))
-print(test_labels[0])
 
 #HOG si dim imaginii pt optimizare
 
@@ -178,6 +186,11 @@ train_labels = np.int32(train_labels)
 svm.setKernel(cv2.ml.SVM_POLY)
 svm.setDegree(2)
 svm.train(features_train, cv2.ml.ROW_SAMPLE, train_labels)
+result = svm.predict(features_test)[1]
+result = np.int32(result).flatten()
+correct = np.count_nonzero(result == test_labels)
+accuracy = correct*100.0/result.size
+print("SVM Accuracy is", accuracy )
 print(svm.predict(np.expand_dims(features_test[0], axis = 0)))
 print(test_labels[0])
 
